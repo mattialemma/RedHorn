@@ -78,6 +78,19 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE = os.environ.get("GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE", "")
+GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON = os.environ.get("GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON", "")
+GOOGLE_DRIVE_DEFAULT_DRIVE_ID = os.environ.get("GOOGLE_DRIVE_DEFAULT_DRIVE_ID", "")
+GOOGLE_DRIVE_SCOPES = [
+    scope
+    for scope in os.environ.get("GOOGLE_DRIVE_SCOPES", "https://www.googleapis.com/auth/drive.file").split(",")
+    if scope
+]
+GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")
+GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET", "")
+GOOGLE_OAUTH_REDIRECT_URI = os.environ.get("GOOGLE_OAUTH_REDIRECT_URI", "")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3100")
+
 CORS_ALLOWED_ORIGINS = [
     origin
     for origin in os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")

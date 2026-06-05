@@ -11,6 +11,11 @@ class Client(models.Model):
         OVERDUE = "overdue", "Insoluto"
         CLOSED = "closed", "Concluso"
 
+    class DriveSyncStatus(models.TextChoices):
+        PENDING = "pending", "In attesa"
+        SYNCED = "synced", "Sincronizzato"
+        FAILED = "failed", "Errore"
+
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="clients")
     name = models.CharField(max_length=180)
     category = models.CharField(max_length=80, blank=True)
@@ -33,7 +38,14 @@ class Client(models.Model):
     country = models.CharField(max_length=8, blank=True)
     photo = models.ImageField(upload_to="clients/", blank=True, null=True)
     theme_color = models.CharField(max_length=20, blank=True)
+    drive_folder_id = models.CharField(max_length=120, blank=True)
     drive_folder_url = models.URLField(blank=True)
+    drive_sync_status = models.CharField(
+        max_length=20,
+        choices=DriveSyncStatus.choices,
+        default=DriveSyncStatus.PENDING,
+    )
+    drive_sync_error = models.TextField(blank=True)
     notes = models.TextField(blank=True)
     administrative_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

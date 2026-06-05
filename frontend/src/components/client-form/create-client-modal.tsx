@@ -262,6 +262,10 @@ export function CreateClientModal({ isOpen, onClose, onCreated }: CreateClientMo
             apiErrors[key] = Array.isArray(value) ? String(value[0]) : String(value);
           });
           setErrors(apiErrors);
+          if (apiErrors.drive) {
+            setSubmitError(apiErrors.drive);
+            return;
+          }
         }
         setSubmitError("Controlla i dati inseriti e riprova.");
         return;

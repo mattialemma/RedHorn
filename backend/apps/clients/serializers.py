@@ -159,7 +159,10 @@ class ClientSerializer(serializers.ModelSerializer):
             "photo",
             "photo_url",
             "theme_color",
+            "drive_folder_id",
             "drive_folder_url",
+            "drive_sync_status",
+            "drive_sync_error",
             "notes",
             "administrative_notes",
             "active_projects_count",
@@ -169,6 +172,10 @@ class ClientSerializer(serializers.ModelSerializer):
         ]
         extra_kwargs = {
             "workspace": {"required": False},
+            "drive_folder_id": {"read_only": True},
+            "drive_folder_url": {"read_only": True},
+            "drive_sync_status": {"read_only": True},
+            "drive_sync_error": {"read_only": True},
         }
 
     def create(self, validated_data):

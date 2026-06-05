@@ -5,8 +5,8 @@ from .models import Client
 
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
-    list_display = ("name", "workspace", "category", "status", "email", "has_photo", "updated_at")
-    list_filter = ("status", "category")
+    list_display = ("name", "workspace", "category", "status", "drive_sync_status", "email", "has_photo", "updated_at")
+    list_filter = ("status", "category", "drive_sync_status")
     search_fields = ("name", "email", "contact_name")
     fields = (
         "workspace",
@@ -31,7 +31,10 @@ class ClientAdmin(admin.ModelAdmin):
         "city",
         "postal_code",
         "country",
+        "drive_folder_id",
         "drive_folder_url",
+        "drive_sync_status",
+        "drive_sync_error",
         "notes",
         "administrative_notes",
     )

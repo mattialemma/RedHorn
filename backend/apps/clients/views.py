@@ -1,15 +1,26 @@
 from django.db.models import Count, Q, Sum
+from django.db import transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
+from rest_framework.exceptions import ValidationError
 from rest_framework import viewsets
 
 from .models import Client
 from .serializers import ClientSerializer
+from apps.workspaces.google_drive import DriveConfigurationError, DriveOperationError, create_client_drive_folder
 
 
 @method_decorator(csrf_protect, name="dispatch")
 class ClientViewSet(viewsets.ModelViewSet):
     serializer_class = ClientSerializer
+
+    def perform_create(self, serializer):
+        try:
+            with transaction.atomic():
+                client = serializer.save()
+                create_client_drive_folder(client)
+        except (DriveConfigurationError, DriveOperationError) as exc:
+            raise ValidationError({"drive": str(exc)}) from exc
 
     def get_queryset(self):
         queryset = Client.objects.annotate(

@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { IoIosNotificationsOutline } from "react-icons/io";
 import { IoSearch } from "react-icons/io5";
 import type { Client } from "@/app/page";
+import { apiUrl } from "@/lib/api";
 import { AddClientCard } from "./add-client-card";
 import { CreateClientModal } from "./client-form/create-client-modal";
 import { ClientFolderCard } from "./client-folder-card";
+import { DriveConnectModal, type DriveSettings } from "./drive-connect-modal";
 
 type ClientsScreenProps = {
   initialClients: Client[];
@@ -16,6 +18,11 @@ export function ClientsScreen({ initialClients }: ClientsScreenProps) {
   const [clients, setClients] = useState(initialClients);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateClientOpen, setIsCreateClientOpen] = useState(false);
+  const [isDriveConnectOpen, setIsDriveConnectOpen] = useState(false);
+  const [isCheckingDrive, setIsCheckingDrive] = useState(false);
+  const [driveSettings, setDriveSettings] = useState<DriveSettings | null>(null);
+  const [driveConnectError, setDriveConnectError] = useState("");
+  const isAnyModalOpen = isCreateClientOpen || isDriveConnectOpen;
 
   const filteredClients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -24,7 +31,7 @@ export function ClientsScreen({ initialClients }: ClientsScreenProps) {
   }, [clients, searchQuery]);
 
   useEffect(() => {
-    if (!isCreateClientOpen) return;
+    if (!isAnyModalOpen) return;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -32,14 +39,78 @@ export function ClientsScreen({ initialClients }: ClientsScreenProps) {
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [isCreateClientOpen]);
+  }, [isAnyModalOpen]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const driveStatus = params.get("drive");
+    if (!driveStatus) return;
+    const driveError = params.get("drive_error");
+
+    const shouldOpenClient = window.localStorage.getItem("redhorn_open_client_after_drive") === "1";
+    window.localStorage.removeItem("redhorn_open_client_after_drive");
+    window.history.replaceState({}, "", window.location.pathname);
+
+    if (driveStatus === "connected") {
+      setDriveConnectError("");
+      void fetch(apiUrl("/drive/settings/"), {
+        cache: "no-store",
+        credentials: "include",
+      })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((settings: DriveSettings | null) => {
+          if (settings) setDriveSettings(settings);
+          if (shouldOpenClient) setIsCreateClientOpen(true);
+        });
+      return;
+    }
+
+    setDriveConnectError(
+      driveStatus === "missing_refresh_token"
+        ? "Google non ha restituito il permesso permanente. Riprova selezionando di nuovo l'account."
+        : driveError
+          ? `Connessione Google Drive non riuscita: ${driveError}`
+          : "Connessione Google Drive non riuscita.",
+    );
+    setIsDriveConnectOpen(true);
+  }, []);
+
+  const openClientFlow = async () => {
+    if (driveSettings?.is_connected) {
+      setIsCreateClientOpen(true);
+      return;
+    }
+
+    setIsCheckingDrive(true);
+    try {
+      const response = await fetch(apiUrl("/drive/settings/"), {
+        cache: "no-store",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        setIsDriveConnectOpen(true);
+        return;
+      }
+      const payload = (await response.json()) as DriveSettings;
+      setDriveSettings(payload);
+      if (payload.is_connected) {
+        setIsCreateClientOpen(true);
+      } else {
+        setIsDriveConnectOpen(true);
+      }
+    } catch {
+      setIsDriveConnectOpen(true);
+    } finally {
+      setIsCheckingDrive(false);
+    }
+  };
 
   return (
     <main
       className="min-h-screen overflow-hidden bg-[#050506] text-white"
       style={{ background: "radial-gradient(circle at center, #303030 0%, #111 47%, #030303 82%)" }}
     >
-      <section className={`min-h-screen transition duration-200 ${isCreateClientOpen ? "scale-[0.99] blur-sm" : ""}`}>
+      <section className={`min-h-screen transition duration-200 ${isAnyModalOpen ? "scale-[0.99] blur-sm" : ""}`}>
         <nav className="flex h-[84px] items-center justify-between border-b border-white/10 px-8 sm:px-8">
           <h1 className="text-4xl font-bold tracking-tight">Clients</h1>
           <div className="flex items-center gap-7">
@@ -68,7 +139,7 @@ export function ClientsScreen({ initialClients }: ClientsScreenProps) {
           </div>
 
           <section className="grid grid-cols-1 gap-x-8 gap-y-[50px] md:grid-cols-2 xl:grid-cols-4" aria-label="Client folders">
-            {!searchQuery.trim() ? <AddClientCard onClick={() => setIsCreateClientOpen(true)} /> : null}
+            {!searchQuery.trim() ? <AddClientCard onClick={openClientFlow} disabled={isCheckingDrive} /> : null}
 
             {filteredClients.map((client) => (
               <ClientFolderCard key={client.id} client={client} />
@@ -89,6 +160,12 @@ export function ClientsScreen({ initialClients }: ClientsScreenProps) {
           setClients((current) => [...current, client].sort((a, b) => a.name.localeCompare(b.name)));
           setIsCreateClientOpen(false);
         }}
+      />
+      <DriveConnectModal
+        isOpen={isDriveConnectOpen}
+        onClose={() => setIsDriveConnectOpen(false)}
+        driveSettings={driveSettings}
+        errorMessage={driveConnectError}
       />
     </main>
   );

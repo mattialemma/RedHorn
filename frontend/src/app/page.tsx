@@ -8,6 +8,10 @@ export type Client = {
   status: string;
   notes: string;
   photo_url: string;
+  drive_folder_id: string;
+  drive_folder_url: string;
+  drive_sync_status: string;
+  drive_sync_error: string;
   active_projects_count: number;
   open_invoices_amount: string | null;
 };
@@ -27,4 +31,3 @@ export default async function Home() {
 
   return <ClientsScreen initialClients={clients} />;
 }
-
